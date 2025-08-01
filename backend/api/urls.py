@@ -1,5 +1,5 @@
 from django.urls import include, path
-from rest_framework.authtoken import views
+from rest_framework.authtoken import views as auth_views
 from rest_framework.routers import DefaultRouter
 
 from . import views
@@ -19,7 +19,8 @@ auth_patterns = [
         name='login'
     ),
     path(
-        'auth/token/logout/', views.TokenDestroyView.as_view(), name='logout'
+        'auth/token/logout/', auth_views.TokenDestroyView.as_view(),
+        name='logout'
     ),
 ]
 
