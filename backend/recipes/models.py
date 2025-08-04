@@ -1,40 +1,94 @@
 from django.db import models
 from django.core.validators import MinValueValidator
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 
-from api.fields import generate_short_link
-from .base_models import BaseRecipeModel, BaseUserRecipeModel
-
-MAX_LENGTH_SHORT_LINK = 10
-
-User = get_user_model()
+from .constants import COOKING_TIME_MIN_VALUE
+from .constants import EMAIL_LENGTH, FIRST_NAME_LENGTH, LAST_NAME_LENGTH
 
 
-class Ingredient(BaseRecipeModel):
-    """Модель ингредиента."""
+class FoodgramUser(AbstractUser):
+    """Модель пользователя."""
 
-    measurement_unit = models.CharField(
-        'Единица измерения',
-        max_length=10,
-        default='g'
+    email = models.EmailField('Почта', unique=True, max_length=EMAIL_LENGTH)
+    avatar = models.ImageField(
+        'Аватар', upload_to='users', default=None, null=True
+    )
+    first_name = models.CharField('Имя', max_length=FIRST_NAME_LENGTH)
+    last_name = models.CharField('Фамилия', max_length=LAST_NAME_LENGTH)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('email',)
+
+    def __str__(self) -> str:
+        return self.username
+
+
+class BaseUserRecipeModel(models.Model):
+    """Абстрактная базовая модель для связей пользователь-рецепт."""
+
+    owner = models.ForeignKey(
+        FoodgramUser,
+        on_delete=models.CASCADE,
+        verbose_name='Владелец'
+    )
+    recipe = models.ForeignKey(
+        'Recipe',
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт'
     )
 
     class Meta:
-        verbose_name = 'Ингредиент'
-        verbose_name_plural = 'Ингредиенты'
+        abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=('owner', 'recipe'),
+                name='%(app_label)s_%(class)s_unique'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.owner} - {self.recipe}'
+
+
+class Ingredient(models.Model):
+    """Модель ингредиента."""
+
+    name = models.CharField('Название', max_length=256, unique=True)
+    measurement_unit = models.CharField(
+        'Единица измерения',
+        max_length=4,
+    )
+
+    class Meta:
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
+        ordering = ('name',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'measurement_unit'],
+                name='unique_ingredient_with_unit'
+            )
+        ]
 
     def __str__(self):
         return self.name
 
 
-class Tag(BaseRecipeModel):
+class Tag(models.Model):
     """Модель тега для рецепта."""
 
+    name = models.CharField('Название', max_length=256, unique=True)
     slug = models.SlugField('Слаг', unique=True)
 
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -43,59 +97,31 @@ class Tag(BaseRecipeModel):
 class Recipe(models.Model):
     """Модель рецепта."""
 
-    tags = models.ManyToManyField(
-        Tag, through='RecipeTag', verbose_name='Теги'
-    )
+    tags = models.ManyToManyField(Tag, verbose_name='Теги')
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, null=True,
-        related_name='recipes', verbose_name='Автор'
+        FoodgramUser, on_delete=models.CASCADE, null=True,
+        verbose_name='Автор'
     )
     ingredients = models.ManyToManyField(
-        Ingredient, related_name='recipes', through='RecipeIngredient',
+        Ingredient, through='RecipeIngredient',
         verbose_name='Ингредиенты'
     )
-    is_favorited = models.BooleanField('В избранном', default=False)
-    is_in_shopping_cart = models.BooleanField(
-        'В списке покупок', default=False
-    )
-    name = models.CharField('Название', max_length=255)
+    name = models.CharField('Название', max_length=256)
     image = models.ImageField('Фото', upload_to='recipes/images')
     text = models.TextField('Описание')
     cooking_time = models.FloatField(
-        'Время приготовления', validators=[MinValueValidator(1)]
-    )
-    short_link = models.CharField(
-        'Короткая ссылка',
-        default=generate_short_link,
-        max_length=MAX_LENGTH_SHORT_LINK,
-        unique=True
+        'Время приготовления',
+        validators=[MinValueValidator(COOKING_TIME_MIN_VALUE)]
     )
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         ordering = ('name',)
+        default_related_name = 'recipes'
 
     def __str__(self):
         return self.name
-
-
-class RecipeTag(models.Model):
-    """Связанная модель рецепта и тега."""
-
-    tag = models.ForeignKey(
-        Tag, on_delete=models.CASCADE, verbose_name='Тег'
-    )
-    recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
-    )
-
-    class Meta:
-        verbose_name = 'Тег рецепта'
-        verbose_name_plural = 'Теги рецепта'
-
-    def __str__(self) -> str:
-        return f'{self.recipe.name} - {self.tag.slug}'
 
 
 class RecipeIngredient(models.Model):
@@ -144,16 +170,16 @@ class Follow(models.Model):
     """Модель подписки."""
 
     user = models.ForeignKey(
-        User,
+        FoodgramUser,
         on_delete=models.CASCADE,
-        related_name='followings',
+        related_name='followers',
         verbose_name='Подписчик'
     )
 
     following = models.ForeignKey(
-        User,
+        FoodgramUser,
         on_delete=models.CASCADE,
-        related_name='followers',
+        related_name='following',
         verbose_name='Подписки'
     )
 

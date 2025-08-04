@@ -4,7 +4,7 @@ from uuid import uuid4
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 
-from .constants import MAX_LENGTH_SHORT_LINK
+MAX_LENGTH_SHORT_LINK = 3
 
 
 class Base64Field(serializers.ImageField):
@@ -16,8 +16,3 @@ class Base64Field(serializers.ImageField):
             ext = format.split('/')[-1]
             data = ContentFile(base64.b64decode(imgstr), name='image.' + ext)
         return super().to_internal_value(data)
-
-
-def generate_short_link():
-    """Генерирует 6-символьную короткую ссылку"""
-    return str(uuid4().hex)[:MAX_LENGTH_SHORT_LINK]
