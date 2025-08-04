@@ -190,7 +190,7 @@ class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
 
     def create_recipe_relations(self, recipe, tags, ingredients):
         """Создание связей рецепта с тегами и ингредиентами."""
-
+        recipe.tags.set(tags)
         RecipeIngredient.objects.bulk_create(
             RecipeIngredient(
                 recipe=recipe,
@@ -198,6 +198,7 @@ class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
                 amount=ingredient['amount']
             ) for ingredient in ingredients
         )
+        return recipe
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -251,8 +252,6 @@ class RecipeCreateSerializer(BaseRecipeEditCreateSerializer):
         recipe = super().create(validated_data)
         self.create_recipe_relations(recipe, tags, ingredients)
 
-        return recipe
-
     def to_representation(self, recipe):
         return RecipeReadSerializer(recipe, context=self.context).data
 
@@ -266,9 +265,9 @@ class RecipeEditSerializer(BaseRecipeEditCreateSerializer):
         self.validate_recipe_data(tags, ingredients)
         # Удаляем старые связи перед обновлением
         RecipeIngredient.objects.filter(recipe=recipe).delete()
-        recipe = super().update(recipe, validated_data)
-        self.create_recipe_relations(recipe, tags, ingredients)
-        return recipe
+        return self.create_recipe_relations(
+            super().update(recipe, validated_data), tags, ingredients
+        )
 
     def to_representation(self, recipe):
         return RecipeReadSerializer(recipe, context=self.context).data

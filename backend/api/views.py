@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import filters, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,7 +20,7 @@ from recipes.models import (
     ShoppingCart,
     Tag,
 )
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .pagination import Pagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
@@ -162,7 +162,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 {'error': 'Рецепт не найден'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        return redirect('api:recipes-detail', pk=recipe_id)
+        return redirect(f'/recipe/{recipe_id}')
 
     @action(
         detail=True,
@@ -180,7 +180,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             reverse('api:short-link', kwargs={'recipe_id': pk})
         )
         return Response(
-            {'short_link': short_url},
+            {'short-link': short_url},
             status=status.HTTP_200_OK
         )
 
@@ -260,8 +260,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('^name', 'name')
+    filter_backends = (IngredientFilter,)
 
 
 class RecipeRedirectView(APIView):
