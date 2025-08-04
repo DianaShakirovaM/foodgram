@@ -251,6 +251,7 @@ class RecipeCreateSerializer(BaseRecipeEditCreateSerializer):
         self.validate_recipe_data(tags, ingredients)
         recipe = super().create(validated_data)
         self.create_recipe_relations(recipe, tags, ingredients)
+        return recipe
 
     def to_representation(self, recipe):
         return RecipeReadSerializer(recipe, context=self.context).data

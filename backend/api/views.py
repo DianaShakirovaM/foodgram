@@ -162,7 +162,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 {'error': 'Рецепт не найден'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        return redirect(f'/recipe/{recipe_id}')
+        return redirect(f'/recipes/{recipe_id}')
 
     @action(
         detail=True,
