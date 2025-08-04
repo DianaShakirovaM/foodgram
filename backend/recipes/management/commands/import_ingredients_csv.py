@@ -23,5 +23,7 @@ class Command(BaseImportCommand):
 
         Ingredient.objects.bulk_create(ingredients, ignore_conflicts=True)
         self.stdout.write(
-            self.style.SUCCESS(f'Добавлено {len(ingredients)} ингредиентов из CSV')
+            self.style.SUCCESS(
+                f'Добавлено {len(ingredients)} ингредиентов из CSV'
+            )
         )

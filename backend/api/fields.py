@@ -1,5 +1,4 @@
 import base64
-from uuid import uuid4
 
 from django.core.files.base import ContentFile
 from rest_framework import serializers

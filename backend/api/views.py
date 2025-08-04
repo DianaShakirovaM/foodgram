@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import filters, serializers, status, viewsets
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -82,7 +82,7 @@ class FoodgramUserViewSet(UserViewSet):
         permission_classes=(IsAuthenticated,),
         pagination_class=Pagination
     )
-    def subscriptions(self, request): 
+    def subscriptions(self, request):
         serializer = SubscriptionSerializer(
             self.paginate_queryset(
                 User.objects.filter(following__user=request.user)
@@ -102,19 +102,21 @@ class FoodgramUserViewSet(UserViewSet):
 
         if request.method == 'POST':
             if request.user == following:
-                raise serializers.ValidationError(
-                    'Нельзя подписываться на себя!',
-                    code='invalid_subscription'
+                return Response(
+                    {'error': 'Нельзя подписываться на себя!'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if Follow.objects.filter(user=request.user, following=following).exists():
-                raise serializers.ValidationError(
-                    'Вы уже подписаны на этого пользователя!',
-                    code='duplicate_subscription'
+            if Follow.objects.filter(
+                user=request.user, following=following
+            ).exists():
+                return Response(
+                    {'error': 'Вы уже подписаны на этого пользователя!'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
             Follow.objects.create(user=request.user, following=following)
-            serializer = SubscriptionSerializer(following, context={'request': request})
+            serializer = SubscriptionSerializer(following)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         subscription = get_object_or_404(
