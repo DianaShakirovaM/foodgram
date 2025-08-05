@@ -1,14 +1,21 @@
-from django.db import models
-from django.core.validators import MinValueValidator
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator
+from django.db import models
 
-from .constants import COOKING_TIME_MIN_VALUE
-from .constants import EMAIL_LENGTH, FIRST_NAME_LENGTH, LAST_NAME_LENGTH
+from .constants import (
+    AMOUNT_MIN_VALUE,
+    COOKING_TIME_MIN_VALUE,
+    EMAIL_LENGTH,
+    FIRST_NAME_LENGTH,
+    LAST_NAME_LENGTH,
+)
+from .validators import UnicodeUsernameValidator
 
 
 class FoodgramUser(AbstractUser):
     """Модель пользователя."""
 
+    username_validator = UnicodeUsernameValidator()
     email = models.EmailField('Почта', unique=True, max_length=EMAIL_LENGTH)
     avatar = models.ImageField(
         'Аватар', upload_to='users', default=None, null=True
@@ -58,10 +65,10 @@ class BaseUserRecipeModel(models.Model):
 class Ingredient(models.Model):
     """Модель ингредиента."""
 
-    name = models.CharField('Название', max_length=256, unique=True)
+    name = models.CharField('Название', max_length=128, unique=True)
     measurement_unit = models.CharField(
         'Единица измерения',
-        max_length=4,
+        max_length=64,
     )
 
     class Meta:
@@ -82,8 +89,8 @@ class Ingredient(models.Model):
 class Tag(models.Model):
     """Модель тега для рецепта."""
 
-    name = models.CharField('Название', max_length=256, unique=True)
-    slug = models.SlugField('Слаг', unique=True)
+    name = models.CharField('Название', max_length=32, unique=True)
+    slug = models.SlugField('Слаг', unique=True, max_length=32)
 
     class Meta:
         verbose_name = 'Тег'
@@ -136,7 +143,8 @@ class RecipeIngredient(models.Model):
         verbose_name='Рецепт'
     )
     amount = models.PositiveSmallIntegerField(
-        'Количество', default=1, validators=[MinValueValidator(1)]
+        'Количество', default=1,
+        validators=[MinValueValidator(AMOUNT_MIN_VALUE)]
     )
 
     class Meta:
@@ -179,7 +187,7 @@ class Follow(models.Model):
     following = models.ForeignKey(
         FoodgramUser,
         on_delete=models.CASCADE,
-        related_name='following',
+        related_name='followings',
         verbose_name='Подписки'
     )
 

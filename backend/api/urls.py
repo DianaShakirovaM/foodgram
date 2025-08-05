@@ -17,9 +17,4 @@ router.register('tags', views.TagViewSet)
 urlpatterns = [
     path('auth/', include('djoser.urls.authtoken')),
     path('', include(router.urls)),
-    path(
-        's/<int:recipe_id>/',
-        views.RecipeViewSet.as_view({'get': 'short_redirect'}),
-        name='short-link'
-    ),
 ]

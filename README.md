@@ -38,14 +38,22 @@ Foodgram — это онлайн-платформа для публикации 
   cd backend
   pip install -r requirements.txt
 ```
-3. Примените миграции:
+3. Импортируйте фикстуры и примените миграции:
 ```bash
+  python manage.py import_ingredients_json
+  python manage.py import_tags_json
   python manage.py migrate
 ```
 4. Запустите сервер:
 ```bash
   python manage.py runserver
 ```
+---
+## Доступы
+ - [Foodgram](https://myyafoodgram.zapto.org/)
+ - [API](https://myyafoodgram.zapto.org/api/)
+ - [Админ-панель](https://myyafoodgram.zapto.org/admin/)
+ ---
 ## Примеры запросов
 - Получить все рецепты
 ```http

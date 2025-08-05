@@ -3,8 +3,6 @@ import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 
-MAX_LENGTH_SHORT_LINK = 3
-
 
 class Base64Field(serializers.ImageField):
     """Кодирует/декодирует фото."""

@@ -1,8 +1,10 @@
+from collections import Counter
+
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
-from recipes.constants import COOKING_TIME_MIN_VALUE
+from recipes.constants import AMOUNT_MIN_VALUE, COOKING_TIME_MIN_VALUE
 from recipes.models import (
     Follow,
     Favorite,
@@ -13,8 +15,6 @@ from recipes.models import (
     Tag,
 )
 from .fields import Base64Field
-
-RECIPE_MIN_VALUE_AMOUNT = 1
 
 
 User = get_user_model()
@@ -61,15 +61,15 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class SubscriptionSerializer(FoodgramUserSerializer):
-    """Сериализатор подписок с информацией о пользователе и его рецептах."""
+class SubscribedUserSerializer(FoodgramUserSerializer):
+    """Сериализатор для пользователей, на которых есть подписка."""
 
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(source='recipes.count')
 
     class Meta(FoodgramUserSerializer.Meta):
         fields = FoodgramUserSerializer.Meta.fields + (
-            'recipes_count', 'avatar', 'recipes'
+            'recipes_count', 'recipes'
         )
 
     def get_recipes(self, user):
@@ -113,15 +113,15 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
         source='ingredient.measurement_unit',
         read_only=True
     )
-    amount = serializers.IntegerField(min_value=RECIPE_MIN_VALUE_AMOUNT)
+    amount = serializers.IntegerField(min_value=AMOUNT_MIN_VALUE)
 
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
-class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
-    """Базовый сериализатор для изменения/создания рецептов."""
+class RecipeEditCreateSerializer(serializers.ModelSerializer):
+    """Сериализатор для изменения/создания рецептов."""
 
     author = FoodgramUserSerializer(read_only=True)
     tags = serializers.PrimaryKeyRelatedField(
@@ -141,14 +141,7 @@ class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
         )
 
     def _find_duplicates(self, items_id):
-        seen = set()
-        duplicates = set()
-        for item_id in items_id:
-            if item_id in seen:
-                duplicates.add(item_id)
-            else:
-                seen.add(item_id)
-        return duplicates
+        return [item for item, count in Counter(items_id).items() if count > 1]
 
     def validate_recipe_data(self, tags, ingredients):
         """Общая валидация тегов и ингредиентов."""
@@ -174,7 +167,7 @@ class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {
                     'tags': 'Обнаружены повторяющиеся теги: '
-                    f'{", ".join(map(str, tags_duplicates))}'
+                    f'{tags_duplicates}'
                 }
             )
 
@@ -182,7 +175,7 @@ class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {
                     'ingredients': 'Обнаружены повторяющиеся ингредиенты: '
-                    f'{", ".join(map(str, ingredients_duplicates))}'
+                    f'{ingredients_duplicates}'
                 }
             )
 
@@ -199,6 +192,27 @@ class BaseRecipeEditCreateSerializer(serializers.ModelSerializer):
             ) for ingredient in ingredients
         )
         return recipe
+
+    def create(self, validated_data):
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('recipe_ingredients')
+        self.validate_recipe_data(tags, ingredients)
+        recipe = super().create(validated_data)
+        self.create_recipe_relations(recipe, tags, ingredients)
+        return recipe
+
+    def update(self, recipe, validated_data):
+        tags = validated_data.pop('tags', None)
+        ingredients = validated_data.pop('recipe_ingredients', None)
+        self.validate_recipe_data(tags, ingredients)
+        # Удаляем старые связи перед обновлением
+        RecipeIngredient.objects.filter(recipe=recipe).delete()
+        return self.create_recipe_relations(
+            super().update(recipe, validated_data), tags, ingredients
+        )
+
+    def to_representation(self, recipe):
+        return RecipeReadSerializer(recipe, context=self.context).data
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -239,36 +253,3 @@ class RecipeReadSerializer(serializers.ModelSerializer):
                 owner=request.user, recipe=obj
             ).exists()
         )
-
-
-class RecipeCreateSerializer(BaseRecipeEditCreateSerializer):
-    """Сериализатор для создания рецепта."""
-
-    def create(self, validated_data):
-        tags = validated_data.pop('tags')
-        ingredients = validated_data.pop('recipe_ingredients')
-
-        self.validate_recipe_data(tags, ingredients)
-        recipe = super().create(validated_data)
-        self.create_recipe_relations(recipe, tags, ingredients)
-        return recipe
-
-    def to_representation(self, recipe):
-        return RecipeReadSerializer(recipe, context=self.context).data
-
-
-class RecipeEditSerializer(BaseRecipeEditCreateSerializer):
-    """Сериализатор для редактирования рецепта."""
-
-    def update(self, recipe, validated_data):
-        tags = validated_data.pop('tags', None)
-        ingredients = validated_data.pop('recipe_ingredients', None)
-        self.validate_recipe_data(tags, ingredients)
-        # Удаляем старые связи перед обновлением
-        RecipeIngredient.objects.filter(recipe=recipe).delete()
-        return self.create_recipe_relations(
-            super().update(recipe, validated_data), tags, ingredients
-        )
-
-    def to_representation(self, recipe):
-        return RecipeReadSerializer(recipe, context=self.context).data
