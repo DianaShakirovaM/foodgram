@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -82,7 +82,7 @@ class FoodgramUserViewSet(UserViewSet):
     def subscriptions(self, request):
         serializer = SubscribedUserSerializer(
             self.paginate_queryset(
-                User.objects.filter(followings__user=request.user)
+                User.objects.filter(authors__user=request.user)
                 .prefetch_related('recipes')
             ),
             many=True, context={'request': request}
@@ -103,17 +103,15 @@ class FoodgramUserViewSet(UserViewSet):
 
         following = get_object_or_404(User, pk=id)
         if request.user == following:
-            return Response(
-                {'error': 'Нельзя подписываться на себя!'},
-                status=status.HTTP_400_BAD_REQUEST
+            raise serializers.ValidationError(
+                {'error': 'Нельзя подписываться на себя!'}
             )
         _, created = Follow.objects.get_or_create(
             user=request.user, following=following
         )
         if not created:
-            return Response(
-                {'error': f'Вы уже подписаны на {following.username}'},
-                status=status.HTTP_400_BAD_REQUEST
+            raise serializers.ValidationError(
+                {'error': f'Вы уже подписаны на {following.username}'}
             )
 
         serializer = SubscribedUserSerializer(
@@ -151,11 +149,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
             raise NotFound(
                 detail={'error': f'Рецепт с id={pk} не найден.'}
             )
-        short_url = request.build_absolute_uri(
-            reverse('recipes:short-link', args=[pk])
-        )
         return Response(
-            {'short-link': short_url},
+            {
+                'short-link':
+                request.build_absolute_uri(
+                    reverse('recipes:short-link', args=[pk])
+                )
+            },
             status=status.HTTP_200_OK
         )
 
@@ -200,10 +200,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe=recipe,
         )
         if not created:
-            return Response(
+            raise serializers.ValidationError(
                 {'error': f'Рецепт {recipe.name} уже добавлен в '
-                          f'{self._get_model_name(model)}'},
-                status=status.HTTP_400_BAD_REQUEST
+                          f'{self._get_model_name(model)}'}
             )
 
         return Response(

@@ -18,21 +18,18 @@ class BaseImportCommand(BaseCommand):
         try:
             filepath = os.path.join(DATA_DIR, self.filename)
             with open(filepath, 'r', encoding='utf-8') as file:
-                items = [self.model(**item) for item in self.load_data(file)]
                 count = len(
                     self.model.objects.bulk_create(
-                        items, ignore_conflicts=True
+                        [self.model(**item) for item in json.load(file)],
+                        ignore_conflicts=True
                     )
                 )
                 self.stdout.write(self.style.SUCCESS(
                     f'Добавлено {count} записей из {self.filename}'
                 ))
-        except Exception:
+        except Exception as e:
             self.stdout.write(
                 self.style.ERROR(
-                    f'Ошибка при загрузке данных в файле {self.filename}'
+                    f'Ошибка при загрузке данных в файле {self.filename}: {e}'
                 )
             )
-
-    def load_data(self, file):
-        return json.load(file)

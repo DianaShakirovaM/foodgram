@@ -13,24 +13,17 @@ from .models import (
 )
 
 
-def admin_display(description):
-    """Декоратор для установки описания методов в админке."""
-    def decorator(func):
-        func.short_description = description
-        return func
-    return decorator
-
-
 def count_method(field_name, description):
     """Создаёт метод для отображения количества связанных объектов."""
-    @admin_display(description)
-    def method(self, obj):
+    @admin.display(description=description)
+    def method(obj):
         return getattr(obj, field_name).count()
     return method
 
 
 class UserRecipeRelationAdmin(admin.ModelAdmin):
     """Базовый класс для моделей связи пользователь-рецепт."""
+
     list_display = ('id', 'owner', 'recipe')
     list_filter = ('owner', 'recipe__tags')
     search_fields = ('recipe__name', 'owner__email')
@@ -64,26 +57,28 @@ class RecipeAdmin(admin.ModelAdmin):
     readonly_fields = ('favorites_count',)
     favorites_count = count_method('favorites', 'В избранном')
 
-    @admin_display(description='Ингредиенты')
+    @admin.display(description='Ингредиенты')
+    @mark_safe
     def ingredients_list(self, recipe):
-        return mark_safe('<br>'.join(
+        return '<br>'.join(
             f'{ing.ingredient.name} - {ing.amount} '
             f'{ing.ingredient.measurement_unit}'
             for ing in recipe.recipe_ingredients.all()
-        ))
+        )
 
-    @admin_display(description='Теги')
+    @admin.display(description='Теги')
+    @mark_safe
     def tags_list(self, recipe):
-        return mark_safe('<br>'.join(tag.name for tag in recipe.tags.all()))
+        return '<br>'.join(tag.name for tag in recipe.tags.all())
 
-    @admin_display(description='Превью')
+    @admin.display(description='Превью')
+    @mark_safe
     def image_preview(self, obj):
         if obj.image:
-            return mark_safe(
+            return (
                 f'<img src="{obj.image.url}" '
                 'style="max-height: 100px; max-width: 100px;" />'
             )
-        return 'Нет изображения'
 
 
 @admin.register(Ingredient)

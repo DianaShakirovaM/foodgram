@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
-from recipes.constants import AMOUNT_MIN_VALUE, COOKING_TIME_MIN_VALUE
+from recipes.constants import MIN_AMOUNT, MIN_COOKING_TIME
 from recipes.models import (
     Follow,
     Favorite,
@@ -113,7 +113,7 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
         source='ingredient.measurement_unit',
         read_only=True
     )
-    amount = serializers.IntegerField(min_value=AMOUNT_MIN_VALUE)
+    amount = serializers.IntegerField(min_value=MIN_AMOUNT)
 
     class Meta:
         model = RecipeIngredient
@@ -131,7 +131,7 @@ class RecipeEditCreateSerializer(serializers.ModelSerializer):
         many=True, source='recipe_ingredients'
     )
     image = Base64Field(required=False)
-    cooking_time = serializers.IntegerField(min_value=COOKING_TIME_MIN_VALUE)
+    cooking_time = serializers.IntegerField(min_value=MIN_COOKING_TIME)
 
     class Meta:
         model = Recipe
@@ -159,10 +159,7 @@ class RecipeEditCreateSerializer(serializers.ModelSerializer):
             )
 
         tags_id = [tag.id for tag in tags]
-        ingredients_id = [item['ingredient'].id for item in ingredients]
         tags_duplicates = self._find_duplicates(tags_id)
-        ingredients_duplicates = self._find_duplicates(ingredients_id)
-
         if tags_duplicates:
             raise serializers.ValidationError(
                 {
@@ -171,6 +168,8 @@ class RecipeEditCreateSerializer(serializers.ModelSerializer):
                 }
             )
 
+        ingredients_id = [item['ingredient'].id for item in ingredients]
+        ingredients_duplicates = self._find_duplicates(ingredients_id)
         if ingredients_duplicates:
             raise serializers.ValidationError(
                 {

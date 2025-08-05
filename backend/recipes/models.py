@@ -1,21 +1,32 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 from .constants import (
-    AMOUNT_MIN_VALUE,
-    COOKING_TIME_MIN_VALUE,
     EMAIL_LENGTH,
     FIRST_NAME_LENGTH,
     LAST_NAME_LENGTH,
+    MIN_AMOUNT,
+    MIN_COOKING_TIME
 )
-from .validators import UnicodeUsernameValidator
 
 
 class FoodgramUser(AbstractUser):
     """Модель пользователя."""
 
-    username_validator = UnicodeUsernameValidator()
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r'^[\w.@+-]+\Z',
+                message=(
+                    'Имя пользователя содержит недопустимые символы.'
+                    'Используйте только буквы, цифры и знаки @.+-_'
+                )
+            )
+        ],
+    )
     email = models.EmailField('Почта', unique=True, max_length=EMAIL_LENGTH)
     avatar = models.ImageField(
         'Аватар', upload_to='users', default=None, null=True
@@ -118,7 +129,7 @@ class Recipe(models.Model):
     text = models.TextField('Описание')
     cooking_time = models.FloatField(
         'Время приготовления',
-        validators=[MinValueValidator(COOKING_TIME_MIN_VALUE)]
+        validators=[MinValueValidator(MIN_COOKING_TIME)]
     )
 
     class Meta:
@@ -144,7 +155,7 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         'Количество', default=1,
-        validators=[MinValueValidator(AMOUNT_MIN_VALUE)]
+        validators=[MinValueValidator(MIN_AMOUNT)]
     )
 
     class Meta:
@@ -187,7 +198,7 @@ class Follow(models.Model):
     following = models.ForeignKey(
         FoodgramUser,
         on_delete=models.CASCADE,
-        related_name='followings',
+        related_name='authors',
         verbose_name='Подписки'
     )
 

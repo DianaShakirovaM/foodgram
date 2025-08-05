@@ -40,9 +40,9 @@ Foodgram — это онлайн-платформа для публикации 
 ```
 3. Импортируйте фикстуры и примените миграции:
 ```bash
+  python manage.py migrate
   python manage.py import_ingredients_json
   python manage.py import_tags_json
-  python manage.py migrate
 ```
 4. Запустите сервер:
 ```bash
@@ -51,8 +51,9 @@ Foodgram — это онлайн-платформа для публикации 
 ---
 ## Доступы
  - [Foodgram](https://myyafoodgram.zapto.org/)
- - [API](https://myyafoodgram.zapto.org/api/)
  - [Админ-панель](https://myyafoodgram.zapto.org/admin/)
+ - [API](https://myyafoodgram.zapto.org/api/)
+ - [API документация](https://myyafoodgram.zapto.org/api/docs/)
  ---
 ## Примеры запросов
 - Получить все рецепты
