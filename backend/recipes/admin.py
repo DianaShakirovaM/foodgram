@@ -21,6 +21,7 @@ def count_method(field_name, description):
     return method
 
 
+@admin.register(ShoppingCart, Favorite)
 class UserRecipeRelationAdmin(admin.ModelAdmin):
     """Базовый класс для моделей связи пользователь-рецепт."""
 
@@ -117,13 +118,3 @@ class FollowAdmin(admin.ModelAdmin):
         'following__email', 'user__email'
     )
     list_filter = ('user', 'following')
-
-
-@admin.register(ShoppingCart)
-class ShoppingCartAdmin(UserRecipeRelationAdmin):
-    pass
-
-
-@admin.register(Favorite)
-class FavoriteAdmin(UserRecipeRelationAdmin):
-    pass
