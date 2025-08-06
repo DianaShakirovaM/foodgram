@@ -16,7 +16,7 @@ from .models import (
 def count_method(field_name, description):
     """Создаёт метод для отображения количества связанных объектов."""
     @admin.display(description=description)
-    def method(obj):
+    def method(self, obj):
         return getattr(obj, field_name).count()
     return method
 
