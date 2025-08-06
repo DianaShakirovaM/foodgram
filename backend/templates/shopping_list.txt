@@ -1,9 +1,11 @@
-СПИСОК ПОКУПОК
 Дата: {{ date }}
 
-{% for item in recipes %}
-{{ item.recipe.name }} (автор: {{ item.recipe.author.get_full_name }})
-{% for ing in item.ingredients %}
-- {{ ing.name|capfirst }}: {{ ing.amount }} {{ ing.measurement_unit }}
+=== СПИСОК РЕЦЕПТОВ ===
+{% for recipe in recipes %}
+- {{ recipe.name }} (автор: {{ recipe.author.get_full_name }})
 {% endfor %}
+
+=== ОБЩИЙ СПИСОК ПОКУПОК ===
+{% for name, data in total_ingredients %}
+- {{ name|capfirst }}: {{ data.amount }} {{ data.unit }}
 {% endfor %}

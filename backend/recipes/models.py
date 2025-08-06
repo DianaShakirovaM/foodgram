@@ -127,15 +127,16 @@ class Recipe(models.Model):
     name = models.CharField('Название', max_length=256)
     image = models.ImageField('Фото', upload_to='recipes/images')
     text = models.TextField('Описание')
-    cooking_time = models.FloatField(
-        'Время приготовления',
+    cooking_time = models.PositiveIntegerField(
+        'Время (мин)',
         validators=[MinValueValidator(MIN_COOKING_TIME)]
     )
+    pub_date = models.DateTimeField('Дата создания', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ('name',)
+        ordering = ('-pub_date',)
         default_related_name = 'recipes'
 
     def __str__(self):
@@ -143,11 +144,11 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    """Связанная модель рецепта и ингредиента."""
+    """Связанная модель рецепта и продукта."""
 
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.CASCADE,
-        verbose_name='Ингредиент'
+        verbose_name='Продукт'
     )
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE,
@@ -160,8 +161,8 @@ class RecipeIngredient(models.Model):
 
     class Meta:
         default_related_name = 'recipe_ingredients'
-        verbose_name = 'Ингредиент в рецепте'
-        verbose_name_plural = 'Ингредиент в рецепте'
+        verbose_name = 'Продукт в рецепте'
+        verbose_name_plural = 'Продукт в рецепте'
 
     def __str__(self) -> str:
         return f'{self.recipe.name} - {self.ingredient.name}'

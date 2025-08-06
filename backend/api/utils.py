@@ -1,32 +1,34 @@
 from collections import defaultdict
-
-from django.db.models import F
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 
 def generate_shopping_list(user):
-    shopping_cart = user.shopping_carts.select_related(
-        'recipe').prefetch_related('recipe__ingredients').all()
-    recipes = [item.recipe for item in shopping_cart]
-    recipe_ingredients = defaultdict(list)
+    MONTH_NAMES = {
+        1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
+        5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа',
+        9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря'
+    }
+    now = timezone.now()
+    day = now.day
+    month = MONTH_NAMES[now.month]
+    year = now.year
+    formatted_date = f'{day} {month} {year}'
 
-    for item in shopping_cart:
-        ingredients = item.recipe.ingredients.all().values(
-            'name',
-            'measurement_unit',
-            amount=F('recipe_ingredients__amount')
-        )
-        recipe_ingredients[item.recipe].extend(ingredients)
-    recipe_ingredients = dict(recipe_ingredients)
+    recipes = [
+        item.recipe for item in user.shopping_carts.select_related('recipe')
+    ]
+    ingredients = defaultdict(lambda: {'amount': 0, 'unit': ''})
+    for cart_item in user.shopping_carts.all():
+        for ingredient in cart_item.recipe.ingredients.all():
+            amount = ingredient.recipe_ingredients.get(
+                recipe=cart_item.recipe).amount
+            ingredients[ingredient.name]['amount'] += amount
+            ingredients[ingredient.name]['unit'] = ingredient.measurement_unit
+
     context = {
-        'date': timezone.now().strftime('%d.%m.%Y'),
-        'recipes': [
-            {
-                'recipe': recipe,
-                'ingredients': recipe_ingredients[recipe]
-            }
-            for recipe in recipes
-        ]
+        'date': formatted_date,
+        'recipes': recipes,
+        'total_ingredients': sorted(ingredients.items())
     }
     return render_to_string('shopping_list.txt', context)

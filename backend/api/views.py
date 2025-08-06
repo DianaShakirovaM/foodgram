@@ -153,7 +153,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             {
                 'short-link':
                 request.build_absolute_uri(
-                    reverse('recipes:short-link', args=[pk])
+                    reverse('recipes:short-link', kwargs={'recipe_id': pk})
                 )
             },
             status=status.HTTP_200_OK
