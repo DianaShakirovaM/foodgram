@@ -19,4 +19,6 @@ class CookingTimeFilter(admin.SimpleListFilter):
             return recipe.filter(cooking_time__lt=30)
         if self.value() == 'medium':
             return recipe.filter(cooking_time__gte=30, cooking_time__lte=60)
-        return recipe.filter(cooking_time__gt=60)
+        if self.value() == 'long':
+            return recipe.filter(cooking_time__gt=60)
+        return recipe
