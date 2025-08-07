@@ -31,6 +31,6 @@ services:
     volumes:
       - static_volume:/static
       - media_volume:/media
-      - ./docs/:/usr/share/nginx/html/api/docs/
+      - ./docs:/docs
     ports:
       - 8080:80
