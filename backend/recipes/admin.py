@@ -4,6 +4,7 @@ from django.utils.safestring import mark_safe
 
 from .filters import CookingTimeFilter
 from .models import (
+    FoodgramUser,
     Follow,
     Ingredient,
     Recipe,
@@ -24,8 +25,29 @@ def count_method(field_name, description):
 
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
+    fields = ('ingredient', 'amount', 'measurement_unit')
+    readonly_fields = ('measurement_unit',)
     extra = 1
     min_num = 1
+
+    @admin.display(description='Ед. изм.')
+    def measurement_unit(self, obj):
+        return obj.ingredient.measurement_unit
+
+
+@admin.register(FoodgramUser)
+class FoodgramUserAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'email', 'username', 'first_name', 'last_name',
+        'is_staff', 'recipe_count', 'follower_count', 'following_count'
+    )
+    list_display_links = ('id', 'email')
+    search_fields = ('email', 'username', 'first_name', 'last_name')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    readonly_fields = ('recipe_count', 'follower_count', 'following_count')
+    recipe_count = count_method('recipes', 'Рецептов')
+    follower_count = count_method('followers', 'Подписчиков')
+    following_count = count_method('authors', 'Подписок')
 
 
 @admin.register(ShoppingCart, Favorite)
@@ -73,7 +95,6 @@ class RecipeAdmin(admin.ModelAdmin):
                 f'<img src="{obj.image.url}" '
                 'style="max-height: 100px; max-width: 100px;" />'
             )
-        return "Нет изображения"
 
 
 @admin.register(Ingredient)
