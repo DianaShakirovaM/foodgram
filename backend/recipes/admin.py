@@ -23,31 +23,70 @@ def count_method(field_name, description):
     return method
 
 
+def image_display(
+        image_field='image', description='Превью',
+        max_height=100, max_width=100
+):
+    """
+    Создаёт метод для отображения превью изображения.
+    """
+    @admin.display(description=description)
+    @mark_safe
+    def method(self, obj):
+        image = getattr(obj, image_field, None)
+        if image and hasattr(image, 'url'):
+            return (
+                f'<img src="{image.url}" '
+                f'style="max-height: {max_height}px; '
+                f'max-width: {max_width}px;" />'
+            )
+        return None
+    return method
+
+
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
-    fields = ('ingredient', 'amount', 'measurement_unit')
-    readonly_fields = ('measurement_unit',)
+    fields = ('ingredient', 'amount', 'measurement_unit_display')
+    readonly_fields = ('measurement_unit_display',)
     extra = 1
     min_num = 1
 
     @admin.display(description='Ед. изм.')
-    def measurement_unit(self, obj):
+    def measurement_unit_display(self, obj):
         return obj.ingredient.measurement_unit
 
 
 @admin.register(FoodgramUser)
 class FoodgramUserAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'email', 'username', 'first_name', 'last_name',
-        'is_staff', 'recipe_count', 'follower_count', 'following_count'
+        'id', 'email', 'full_name', 'username', 'avatar_display',
+        'recipe_count', 'follower_count', 'following_count'
     )
     list_display_links = ('id', 'email')
     search_fields = ('email', 'username', 'first_name', 'last_name')
-    list_filter = ('is_staff', 'is_superuser', 'is_active')
-    readonly_fields = ('recipe_count', 'follower_count', 'following_count')
+    list_filter = ('is_superuser', 'is_active')
+    readonly_fields = (
+        'recipe_count', 'follower_count', 'following_count', 'avatar_display'
+    )
     recipe_count = count_method('recipes', 'Рецептов')
     follower_count = count_method('followers', 'Подписчиков')
     following_count = count_method('authors', 'Подписок')
+    avatar_display = image_display('avatar', 'Аватар')
+
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Личная информация', {'fields': (
+            'first_name', 'last_name', 'email', 'avatar')}),
+        ('Права доступа', {
+            'fields': ('is_active', 'is_staff', 'is_superuser',
+                       'groups', 'user_permissions'),
+        }),
+        ('Важные даты', {'fields': ('last_login', 'date_joined')}),
+    )
+
+    @admin.display(description='ФИО')
+    def full_name(self, obj):
+        return f'{obj.last_name} {obj.first_name}'
 
 
 @admin.register(ShoppingCart, Favorite)
@@ -71,6 +110,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('tags', 'author', CookingTimeFilter)
     readonly_fields = ('favorites_count', 'image_preview')
     favorites_count = count_method('favorites', 'В избранном')
+    image_preview = image_display('image')
     inlines = (RecipeIngredientInline,)
 
     @admin.display(description='Ингредиенты')
@@ -86,15 +126,6 @@ class RecipeAdmin(admin.ModelAdmin):
     @mark_safe
     def tags_list(self, recipe):
         return '<br>'.join(tag.name for tag in recipe.tags.all())
-
-    @admin.display(description='Превью')
-    @mark_safe
-    def image_preview(self, obj):
-        if obj.image:
-            return (
-                f'<img src="{obj.image.url}" '
-                'style="max-height: 100px; max-width: 100px;" />'
-            )
 
 
 @admin.register(Ingredient)

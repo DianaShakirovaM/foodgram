@@ -15,6 +15,7 @@ class FoodgramUser(AbstractUser):
     """Модель пользователя."""
 
     username = models.CharField(
+        'Ник',
         max_length=150,
         unique=True,
         validators=[
@@ -163,6 +164,10 @@ class RecipeIngredient(models.Model):
         default_related_name = 'recipe_ingredients'
         verbose_name = 'Продукт в рецепте'
         verbose_name_plural = 'Продукт в рецепте'
+
+    @property
+    def measurement_unit_display(self):
+        return self.ingredient.measurement_unit if self.ingredient else ''
 
     def __str__(self) -> str:
         return f'{self.recipe.name} - {self.ingredient.name}'
