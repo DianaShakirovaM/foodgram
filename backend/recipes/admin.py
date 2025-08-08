@@ -40,20 +40,14 @@ def image_display(
                 f'style="max-height: {max_height}px; '
                 f'max-width: {max_width}px;" />'
             )
-        return None
+        return ''
     return method
 
 
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
-    fields = ('ingredient', 'amount', 'measurement_unit_display')
-    readonly_fields = ('measurement_unit_display',)
     extra = 1
     min_num = 1
-
-    @admin.display(description='Ед. изм.')
-    def measurement_unit_display(self, obj):
-        return obj.ingredient.measurement_unit
 
 
 @admin.register(FoodgramUser)
