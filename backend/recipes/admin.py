@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.utils.safestring import mark_safe
+from django.contrib.auth.admin import UserAdmin
 
 from .filters import CookingTimeFilter
 from .models import (
@@ -51,7 +52,7 @@ class RecipeIngredientInline(admin.TabularInline):
 
 
 @admin.register(FoodgramUser)
-class FoodgramUserAdmin(admin.ModelAdmin):
+class FoodgramUserAdmin(UserAdmin):
     list_display = (
         'id', 'email', 'full_name', 'username', 'avatar_display',
         'recipe_count', 'follower_count', 'following_count'
